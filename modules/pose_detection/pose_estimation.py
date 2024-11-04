@@ -1,15 +1,121 @@
-import preprocessing
+from preprocessing import imagePreprocessing , VideoPreprocessing
+import numpy as np
+import mediapipe as mp
 import cv2 as cv
-import sys
-import os
-
-openpose_path = os.path("../../external/OpenPose/build/python")
-sys.path.append(openpose_path)
 
 
-# from openpose import pyopenpose as op
 
-class ImageEstimator:
-    def __init__(self, model_folder):
-        pass
+class ImageEstimator(imagePreprocessing) :
+    def __init__(self, static_image_mode = True, model_complexity = 1, enable_segmentation=False, min_detection_confidence=0.5):
+        self.pose = mp.solutions.pose.Pose(
+            static_image_mode=static_image_mode,
+            model_complexity=model_complexity,
+            enable_segmentation=enable_segmentation,
+            min_detection_confidence=min_detection_confidence
+            )
+        self.mp_drawing = mp.solutions.drawing_utils
+        self.processor = imagePreprocessing()
     
+    def get_landmarks(self, image , show = False, draw = False ):
+        self.image = self.processor.process(image)
+        self.results = self.pose.process(self.image)
+        lmList = []
+        for id, lm in enumerate(self.results.pose_landmarks.landmark):
+                h, w, c = self.image.shape
+                cx, cy = int(lm.x*w) , int(lm.y*h)
+                lmList.append([ cx, cy])
+        
+        if self.results.pose_landmarks:
+            if draw:
+                    self.mp_drawing.draw_landmarks(
+                    self.image, self.results.pose_landmarks, mp.solutions.pose.POSE_CONNECTIONS
+                    ) 
+            self.image = cv.cvtColor(self.image, cv.COLOR_RGB2BGR)
+            if show:
+                cv.imshow("image",self.image)
+                cv.waitKey(0)
+            
+        else:
+            print("No pose landmarks detected.")
+        
+        return self.image, lmList 
+
+    def get_angle(self, p1 , p2 , p3, draw = False):
+        p1 = np.array(p1)
+        p2 = np.array(p2)
+        p3 = np.array(p3)
+        radians = np.arctan2(p3[1]-p2[1], p3[0]-p2[0]) - np.arctan2(p1[1]-p2[1], p1[0]-p2[0])
+        angle = np.abs(radians*180.0/np.pi)
+        
+        if angle >180.0:
+            angle %= 360
+        
+        if draw:
+            cv.putText(self.image, str(angle), 
+                           p2, 
+                           cv.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2, cv.LINE_AA
+                                )
+        return self.image, angle 
+
+
+class VideoEstimatoror(VideoPreprocessing):
+    def __init__(self, frame_size=(480, 640) ,static_image_mode=False, model_complexity=1, enable_segmentation=False, min_detection_confidence=0.5):
+        super().__init__(frame_size=frame_size)
+        self.pose = mp.solutions.pose.Pose(
+            static_image_mode=static_image_mode,
+            model_complexity=model_complexity,
+            enable_segmentation=enable_segmentation,
+            min_detection_confidence=min_detection_confidence
+        )
+        self.mp_drawing = mp.solutions.drawing_utils  # Utility for drawing
+
+    def get_landmarks(self, video_path, show=False, draw=False):
+        # Load and process the video
+        video = self.load_video(video_path)
+        processed_frames = []
+
+        while video.isOpened():
+            ret, frame = video.read()
+            if not ret:
+                break
+
+            # Resize the frame
+            frame = self.resize_frame(frame)
+
+            # Convert to RGB for MediaPipe processing
+            frame_rgb = cv.cvtColor(frame, cv.COLOR_BGR2RGB)
+            results = self.pose.process(frame_rgb)
+
+            if results.pose_landmarks:
+                if draw:
+                    # Draw landmarks on the frame
+                    self.mp_drawing.draw_landmarks(
+                        frame, results.pose_landmarks, mp.solutions.pose.POSE_CONNECTIONS
+                    )
+                
+                # Convert to BGR for displaying
+                processed_frame = cv.cvtColor(frame, cv.COLOR_RGB2BGR)
+                
+                if show:
+                    cv.imshow("Pose Estimatorion", processed_frame)
+                    if cv.waitKey(1) & 0xFF == ord('q'):
+                        break
+
+                processed_frames.append((processed_frame, results.pose_landmarks))
+            else:
+                processed_frames.append((frame, None))
+
+        video.release()
+        cv.destroyAllWindows()
+        return processed_frames
+
+def main():
+    estimator = ImageEstimator()
+    image, lms = estimator.get_landmarks(r"C:\Users\body0\OneDrive\Desktop\testPose.jpg",  draw=True)
+    image, angle = estimator.get_angle(lms[13], lms[11], lms[23], draw=True)
+    cv.imshow("image", image)
+    cv.waitKey(0)
+    print(lms)    
+
+if __name__ == "__main__":
+    main()
