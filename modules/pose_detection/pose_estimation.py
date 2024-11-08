@@ -1,11 +1,12 @@
 from preprocessing import imagePreprocessing , VideoPreprocessing
+from body_angles import PostureDefinitions
 import numpy as np
 import mediapipe as mp
 import cv2 as cv
 
 
-
-class ImageEstimator(imagePreprocessing) :
+#===============================================================================================================================================
+class ImageEstimator(imagePreprocessing, PostureDefinitions) :
     def __init__(self, static_image_mode = True, model_complexity = 1, enable_segmentation=False, min_detection_confidence=0.5):
         self.pose = mp.solutions.pose.Pose(
             static_image_mode=static_image_mode,
@@ -15,7 +16,8 @@ class ImageEstimator(imagePreprocessing) :
             )
         self.mp_drawing = mp.solutions.drawing_utils
         self.processor = imagePreprocessing()
-    
+        self.posture_definitions = PostureDefinitions()
+
     def get_landmarks(self, image , show = False, draw = False ):
         self.image = self.processor.process(image)
         self.results = self.pose.process(self.image)
@@ -23,7 +25,7 @@ class ImageEstimator(imagePreprocessing) :
         for id, lm in enumerate(self.results.pose_landmarks.landmark):
                 h, w, c = self.image.shape
                 cx, cy = int(lm.x*w) , int(lm.y*h)
-                lmList.append([ cx, cy])
+                lmList.append([id, cx, cy])
         
         if self.results.pose_landmarks:
             if draw:
@@ -41,9 +43,9 @@ class ImageEstimator(imagePreprocessing) :
         return self.image, lmList 
 
     def get_angle(self, p1 , p2 , p3, draw = False):
-        p1 = np.array(p1)
-        p2 = np.array(p2)
-        p3 = np.array(p3)
+        p1 = np.array(p1[:2])
+        p2 = np.array(p2[:2])
+        p3 = np.array(p3[:2])
         radians = np.arctan2(p3[1]-p2[1], p3[0]-p2[0]) - np.arctan2(p1[1]-p2[1], p1[0]-p2[0])
         angle = np.abs(radians*180.0/np.pi)
         
@@ -52,12 +54,33 @@ class ImageEstimator(imagePreprocessing) :
         
         if draw:
             cv.putText(self.image, str(angle), 
-                           p2, 
+                           (p2[1], p2[2]), 
                            cv.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2, cv.LINE_AA
                                 )
-        return self.image, angle 
+        return self.image, angle
+    
+    def get_all(self, image):
+        
+        self.image, landmarks = self.get_landmarks(image)
+        angles = {}
+        for posture_name, posture_definition in self.posture_definitions.postures.items():
+            points = posture_definition.points
+            try:
+                # Access the three required points from landmarks
+                p1, p2, p3 = landmarks[points[0]], landmarks[points[1]], landmarks[points[2]]
+                _, angle = self.get_angle(p1[1:], p2[1:], p3[1:])
+                angles[posture_name] = angle
+            except IndexError:
+                print(f"Warning: Could not calculate angle for {posture_name} due to missing landmarks.")
+        return {
+            "land marks": landmarks,
+            "angles": angles
+        }
+        
 
 
+
+#===============================================================================================================================================
 class VideoEstimatoror(VideoPreprocessing):
     def __init__(self, frame_size=(480, 640) ,static_image_mode=False, model_complexity=1, enable_segmentation=False, min_detection_confidence=0.5):
         super().__init__(frame_size=frame_size)
@@ -112,10 +135,19 @@ class VideoEstimatoror(VideoPreprocessing):
 def main():
     estimator = ImageEstimator()
     image, lms = estimator.get_landmarks(r"C:\Users\body0\OneDrive\Desktop\testPose.jpg",  draw=True)
-    image, angle = estimator.get_angle(lms[13], lms[11], lms[23], draw=True)
+    data = estimator.get_all(r"C:\Users\body0\OneDrive\Desktop\testPose.jpg")
+    print("Landmarks:")
+    for landmark in data["land marks"]:
+        print(f"ID: {landmark[0]}, X: {landmark[1]}, Y: {landmark[2]}")
+
+# Print angles for each posture
+    print("\nPosture Angles:")
+    for posture_name, angle in data["angles"].items():
+        print(f"{posture_name}: {angle:.2f}°")
     cv.imshow("image", image)
     cv.waitKey(0)
-    print(lms)    
+    for lm in lms:
+        print(lm)    
 
 if __name__ == "__main__":
     main()
