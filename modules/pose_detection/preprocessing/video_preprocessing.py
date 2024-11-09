@@ -1,37 +1,5 @@
 import cv2 as cv
-
-FRAME_SIZE = (480, 640)
-
-class imagePreprocessing:
-    def __init__(self , frame_size = FRAME_SIZE, normalization=True):
-        self.frame_size = frame_size
-        
-    def load_image(self, image_path ):
-        """
-        Load an image from a file path.
-        """
-        image = cv.imread(image_path)
-        if image is None:
-            raise ValueError(f"Image not found at {image_path}")
-        
-        return image
-    
-    def resize_image(self, image):
-        resized_image = cv.resize(image, self.frame_size)
-        # rgb_image = cv.cvtColor(resized_image, cv.COLOR_BGR2RGB)
-        return resized_image
-    
-    def process(self, image):
-        """
-        Process the image: load, resize, and convert to RGB.
-        """
-        image = self.load_image(image)
-        image = self.resize_image(image)
-        RGBImage = cv.cvtColor(image, cv.COLOR_BGR2RGB)
-        return RGBImage
-
-
-
+from config import FRAME_SIZE
 
 class VideoPreprocessing:
     def __init__(self, frame_size=FRAME_SIZE, normalization=True):
@@ -74,14 +42,3 @@ class VideoPreprocessing:
 
         video.release()
         return processed_frames
-
-def main():
-    processor = imagePreprocessing()
-    img = processor.load_image(r"C:\Users\body0\OneDrive\Desktop\testPose.jpg")
-    img = processor.resize_image(img)
-    cv.imshow("image",img)
-    cv.waitKey(0)
-    cv.destroyAllWindows()
-
-if __name__ == "__main__":
-    main()
