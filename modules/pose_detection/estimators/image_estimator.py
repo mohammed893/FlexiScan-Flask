@@ -62,6 +62,8 @@ class ImageEstimator(imagePreprocessing, PostureDefinitions) :
             except IndexError:
                 print(f"Warning: Could not calculate angle for {posture_name} due to missing landmarks.")
         return {
-            "land marks": landmarks,
+            "land_marks": landmarks,
             "angles": angles
         }
+
+

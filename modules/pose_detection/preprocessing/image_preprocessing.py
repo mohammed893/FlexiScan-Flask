@@ -1,9 +1,8 @@
 import cv2 as cv
-from config import FRAME_SIZE
+from modules.pose_detection.config import *
 
-frameSize = FRAME_SIZE
 class imagePreprocessing:
-    def __init__(self , frame_size = frameSize, normalization=True):
+    def __init__(self , frame_size = FRAME_SIZE, normalization=True):
         self.frame_size = frame_size
         
     def load_image(self, image_path ):

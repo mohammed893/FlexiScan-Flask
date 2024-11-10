@@ -98,7 +98,7 @@ class VideoEstimator(BaseEstimator):
             except IndexError:
                 print(f"Warning: Could not calculate angle for {posture_name} due to missing landmarks.")
         return {
-            "land marks": median_landmarks,
+            "land_marks": median_landmarks,
             "angles": angles
         }
 
