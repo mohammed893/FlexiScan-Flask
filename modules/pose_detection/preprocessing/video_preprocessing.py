@@ -1,5 +1,5 @@
 import cv2 as cv
-from config import FRAME_SIZE
+from modules.pose_detection.config import FRAME_SIZE
 
 class VideoPreprocessing:
     def __init__(self, frame_size=FRAME_SIZE, normalization=True):

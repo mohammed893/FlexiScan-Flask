@@ -1,8 +1,6 @@
-from base_estimator import BaseEstimator
-from pose_detection import PostureDefinitions
-from pose_detection import angle_calc
-from pose_detection import imagePreprocessing
-import mediapipe as mp
+from modules.pose_detection.estimators.base_estimator import *
+from modules.pose_detection.preprocessing.image_preprocessing import *
+from modules.pose_detection.definitions.body_angles import *
 import cv2 as cv
 
 class ImageEstimator(imagePreprocessing, PostureDefinitions) :
